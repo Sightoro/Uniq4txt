@@ -16,17 +16,47 @@ type Flags struct {
 	useU *bool
 	useI *bool
 	useF *bool
+	useS *bool
 	argF int
-	/*	useF *string
-		useS *string
-		string*/
+	argS int
 }
 
-func equalStr(parametrI *bool, str1 string, str2 string) (result bool) {
-	if *parametrI {
+func equalStr(parametr *Flags, str1 string, str2 string) (result bool) {
+	if *parametr.useI {
+		if *parametr.useS {
+			if (str1 == "") && (str2 == "") {
+				return true
+			}
+			if str1 == "" {
+				result = strings.EqualFold(str1, str2[parametr.argS:len(str2)])
+				return result
+			}
+			if str2 == "" {
+				result = strings.EqualFold(str1[parametr.argS:len(str1)], str2)
+				return result
+			}
+			result = strings.EqualFold(str1[parametr.argS:len(str1)], str2[parametr.argS:len(str2)])
+			return result
+		}
 		result = strings.EqualFold(str1, str2)
 		return result
 	}
+	if *parametr.useS {
+		if (str1 == "") && (str2 == "") {
+			return true
+		}
+		if str1 == "" {
+			result = str1 == str2[parametr.argS:len(str2)]
+			return result
+		}
+		if str2 == "" {
+			result = str1[parametr.argS:len(str1)] == str2
+			return result
+		}
+		result = str1[parametr.argS:len(str1)] == str2[parametr.argS:len(str2)]
+		return result
+	}
+
 	result = str1 == str2
 	return result
 }
@@ -49,17 +79,14 @@ func readFile(path string, parametr *Flags) {
 			previosString = line
 		}
 
-		if *parametr.useF {
-			strings.SplitAfterN(previosString, " ", parametr.argF)
-			fmt.Print(parametr.argF)
-		}
-
-		if equalStr(parametr.useI, previosString, line) == false {
+		if equalStr(parametr, previosString, line) == false {
 			if *parametr.useC {
 				fmt.Print(n, " ", previosString)
 			} else if *parametr.useD && n > 1 {
 				fmt.Print(previosString)
 			} else if *parametr.useU && n == 1 {
+				fmt.Print(previosString)
+			} else if *parametr.useS {
 				fmt.Print(previosString)
 			}
 			previosString = line
@@ -104,27 +131,31 @@ func main() {
 		useD: flag.Bool("d", false, "вывод строк, которые повторились"),
 		useU: flag.Bool("u", false, "вывод строк, которые не повторились"),
 		useI: flag.Bool("i", false, "не учитывать регистр букв"),
-		useF: flag.Bool("f", false, "не учитывать первые num_fields полей в строке")}
+		useF: flag.Bool("f", false, "не учитывать первые num_fields полей в строке"),
+		useS: flag.Bool("s", false, "не учитывать первые num_chars символов в строке")}
 	flag.Parse()
-	/*,
-	useF: flag.String("f", "f", "не учитывать первые num_fields полей в строке"),
-	useS: flag.String("s", "s", "не учитывать первые num_chars символов в строке"),
-	}*/
-	/*if len(os.Args) < 2 {
-		fmt.Println("Missing parameter, provide file name!")
-		return
-	}
-	path := os.Args[1]*/
+
 	i := 0
 	if *flags.useF {
+		if *flags.useS {
+			i = 2
+			s := flag.Arg(0)
+			flags.argS, _ = strconv.Atoi(s)
+			f := flag.Arg(1)
+			flags.argF, _ = strconv.Atoi(f)
+		} else {
+			i = 1
+			f := flag.Arg(0)
+			flags.argF, _ = strconv.Atoi(f)
+		}
+	} else if *flags.useS {
 		i = 1
 		s := flag.Arg(0)
-		flags.argF, _ = strconv.Atoi(s)
+		flags.argS, _ = strconv.Atoi(s)
 	}
 	path := flag.Arg(i)
 
-	//path := "/Users/itsumaden/go/src/Tests/text.txt"
-	if *flags.useC || *flags.useD || *flags.useU {
+	if *flags.useC || *flags.useD || *flags.useU || *flags.useF || *flags.useS {
 		readFile(path, &flags)
 		return
 	}
